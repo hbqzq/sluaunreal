@@ -442,6 +442,9 @@ namespace NS_SLUA {
         lua_CFunction set=LuaCppBinding<decltype(SET),SET>::LuaCFunction; \
         LuaObject::addField(L,#NAME,get,set,INST); \
     }
+    
+    #define DefLuaMethod_With_StaticImpl(NAME, Static, FUNC) \
+		LuaObject::addMethod(L, #NAME, FUNC, !Static);
 
     #define DefGlobalMethod(NAME,M) { \
         lua_CFunction x=LuaCppBinding<decltype(M),M>::LuaCFunction; \
@@ -455,6 +458,12 @@ namespace NS_SLUA {
 
     #define DefGlobalMethod_With_Imp(NAME,BODY) { \
         LuaObject::addGlobalMethod(L, #NAME,[](lua_State* L)->int BODY); }
+
+    #define DefGlobalMethod_With_Static(NAME,BODY) { \
+        LuaObject::addGlobalMethod(L, #NAME,[](lua_State* L)->int BODY); }
+
+    #define DefGlobalMethod_With_StaticImpl(NAME,FUNC) { \
+        LuaObject::addGlobalMethod(L, #NAME, FUNC);
 
     #define DefGlobalMethod_With_Lambda(NAME,...) { \
         static auto lambda = __VA_ARGS__; \

@@ -55,6 +55,24 @@
 
 #define IsRealOutParam(propflag) ((propflag&CPF_OutParm) && !(propflag&CPF_ConstParm) && !(propflag&CPF_BlueprintReadOnly))
 
+#define DefPushStruct(TYPE) \
+	static inline int push(lua_State* L, TYPE v) { \
+		TYPE* p = new TYPE(v); \
+		return LuaObject::push<TYPE>(L, TypeName<TYPE>::value().c_str(), p, UD_AUTOGC); \
+	}
+
+#define DefCheckStruct(TYPE) \
+	template <> \
+    inline TYPE LuaObject::checkValue(lua_State* L, int p) { \
+		if (lua_isnil(L, p)) \
+			return TYPE(); \
+		auto udptr = reinterpret_cast<UserData<TYPE*>*>(lua_touserdata(L, p)); \
+		if(!udptr) { luaL_error(L, "self ptr missing"); return TYPE(); } \
+		if (udptr->flag & UD_HADFREE) { luaL_error(L, "checkValue error, obj parent has been freed"); return TYPE(); } \
+		auto self = udptr->ud; \
+		return self ? *self : TYPE(); \
+    }
+
 namespace NS_SLUA {
 
     class LuaVar;
@@ -655,6 +673,14 @@ namespace NS_SLUA {
 		static int push(lua_State* L, UProperty* up, uint8* parms, bool ref=true);
 		static int push(lua_State* L, UProperty* up, UObject* obj, bool ref=true);
 
+		static int push(lua_State* L, const TCHAR* v) {
+			return push(L, (const char*)TCHAR_TO_UTF8(v));
+		}
+
+		DefPushStruct(FVector2D)
+		DefPushStruct(FVector)
+		DefPushStruct(FDateTime)
+
         // check tn is base of base
         static bool isBaseTypeOf(lua_State* L,const char* tn,const char* base);
 
@@ -887,6 +913,11 @@ namespace NS_SLUA {
         return lua_touserdata(L,p);
     }
 
+	template <>
+    inline const TCHAR* LuaObject::checkValue(lua_State* L, int p) {
+        return UTF8_TO_TCHAR(luaL_checkstring(L, p));
+    }
+
 	template<>
 	inline int LuaObject::pushType<LuaStruct*, false>(lua_State* L, LuaStruct* cls,
 		const char* tn, lua_CFunction setupmt, lua_CFunction gc) {
@@ -902,4 +933,8 @@ namespace NS_SLUA {
 		setupMetaTable(L, tn, setupmt, gc);
 		return 1;
 	}
+
+	DefCheckStruct(FVector2D)
+	DefCheckStruct(FVector)
+	DefCheckStruct(FDateTime)
 }
