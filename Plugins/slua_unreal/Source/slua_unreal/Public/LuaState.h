@@ -148,11 +148,11 @@ namespace NS_SLUA {
 
 		lua_State* getLuaState() const
 		{
-			return L;
+			return L ? lua_runningthread(L) : nullptr;
 		}
 		operator lua_State*() const
 		{
-			return L;
+			return L ? lua_runningthread(L) : nullptr;
 		}
 
         // create a empty table
