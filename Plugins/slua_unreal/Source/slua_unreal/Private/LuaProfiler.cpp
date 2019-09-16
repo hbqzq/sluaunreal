@@ -38,6 +38,7 @@
 #define TEXT(x) TEXT_PASTE(x)
 #endif
 
+
 #ifdef ENABLE_PROFILER
 namespace NS_SLUA {
 
