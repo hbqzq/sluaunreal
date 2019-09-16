@@ -15,9 +15,20 @@
 #include "Log.h"
 #include "LuaState.h"
 #include "ArrayWriter.h"
+
+#if PLATFORM_WINDOWS
+#include "MinWindows.h" 	// avoid compiling errors
+#undef TEXT 				// avoid compiling warning of TEXT redefinition
+#endif
 #include "luasocket/tcp.h"
 #include "luasocket/auxiliar.h"
 #include "luasocket/buffer.h"
+#if PLATFORM_WINDOWS
+#ifdef TEXT
+#undef TEXT
+#endif
+#define TEXT(x) TEXT_PASTE(x)
+#endif
 
 namespace NS_SLUA {
 
