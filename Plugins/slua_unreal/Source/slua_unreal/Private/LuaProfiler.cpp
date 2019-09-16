@@ -22,17 +22,20 @@
 #include "luasocket/buffer.h"
 #include "lua/lua.hpp"
 
+
 #if PLATFORM_WINDOWS
-#ifdef TEXT
-#undef TEXT
+#include "MinWindows.h" 	// avoid compiling errors
+#undef TEXT 				// avoid compiling warning of TEXT redefinition
 #endif
 #endif
+
 #include "luasocket/tcp.h"
 
 #if PLATFORM_WINDOWS
 #include <winsock2.h>
 #else
 #include <sys/ioctl.h>
+#define TEXT(x) TEXT_PASTE(x)
 #endif
 
 #ifdef ENABLE_PROFILER
