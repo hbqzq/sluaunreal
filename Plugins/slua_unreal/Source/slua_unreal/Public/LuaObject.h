@@ -681,6 +681,10 @@ namespace NS_SLUA {
 			return push(L, (const char*)TCHAR_TO_UTF8(v));
 		}
 
+		static int push(lua_State* L, const FKey& v) {
+			return push(L, v.GetFName().ToString());
+		}
+
 		DefPushStruct(FVector2D)
 		DefPushStruct(FVector)
 		DefPushStruct(FDateTime)
@@ -923,8 +927,19 @@ namespace NS_SLUA {
 
 	template <>
     inline const TCHAR* LuaObject::checkValue(lua_State* L, int p) {
-        return UTF8_TO_TCHAR(luaL_checkstring(L, p));
+		#define MAX_STATIC_STRING 4
+        static thread_local FString STATIC_STRINGS[MAX_STATIC_STRING];
+		static thread_local int INDEX = 0;
+        auto& s = STATIC_STRINGS[(size_t)(INDEX % MAX_STATIC_STRING)];
+		INDEX ++;
+		s = UTF8_TO_TCHAR(luaL_checkstring(L, p));
+		return *s;
     }
+
+	template <>
+	inline FKey LuaObject::checkValue(lua_State* L, int p) {
+		return FKey(UTF8_TO_TCHAR(luaL_checkstring(L, p)));
+	}
 
 	template<>
 	inline int LuaObject::pushType<LuaStruct*, false>(lua_State* L, LuaStruct* cls,
