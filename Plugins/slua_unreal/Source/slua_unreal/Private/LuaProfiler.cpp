@@ -30,6 +30,8 @@
 #define TEXT(x) TEXT_PASTE(x)
 #endif
 
+
+#ifdef ENABLE_PROFILER
 namespace NS_SLUA {
 
 	#include "LuaProfiler.inl"
@@ -128,7 +130,7 @@ namespace NS_SLUA {
 			if (strstr(ar->short_src, ChunkName)) 
 				return;
 
-			takeSample(ar->event,ar->linedefined, ar->name ? ar->name : "", ar->short_src ? ar->short_src : "");
+			takeSample(ar->event,ar->linedefined, ar->name ? ar->name : "", ar->short_src);
 		}
 
 		int changeHookState(lua_State* L) {
@@ -193,3 +195,4 @@ namespace NS_SLUA {
 	}
 
 }
+#endif
