@@ -443,7 +443,7 @@ namespace NS_SLUA {
         LuaObject::addField(L,#NAME,get,set,INST); \
     }
     
-    #define DefLuaMethod_With_StaticImpl(NAME, Static, FUNC) \
+    #define DefLuaMethod_With_CFunction(NAME, Static, FUNC) \
 		LuaObject::addMethod(L, #NAME, FUNC, !Static);
 
     #define DefGlobalMethod(NAME,M) { \
@@ -462,7 +462,7 @@ namespace NS_SLUA {
     #define DefGlobalMethod_With_Static(NAME,BODY) { \
         LuaObject::addGlobalMethod(L, #NAME,[](lua_State* L)->int BODY); }
 
-    #define DefGlobalMethod_With_StaticImpl(NAME,FUNC) { \
+    #define DefGlobalMethod_With_CFunction(NAME,FUNC) { \
         LuaObject::addGlobalMethod(L, #NAME, FUNC);
 
     #define DefGlobalMethod_With_Lambda(NAME,...) { \

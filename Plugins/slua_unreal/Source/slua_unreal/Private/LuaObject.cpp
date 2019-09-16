@@ -24,7 +24,6 @@
 #include "UObject/UnrealType.h"
 #include "UObject/Stack.h"
 #include "Blueprint/WidgetTree.h"
-#include "LuaWidgetTree.h"
 #include "LuaArray.h"
 #include "LuaMap.h"
 #include "Log.h"
@@ -419,10 +418,13 @@ namespace NS_SLUA {
     int classIndex(lua_State* L) {
         UClass* cls = LuaObject::checkValue<UClass*>(L, 1);
         const char* name = LuaObject::checkValue<const char*>(L, 2);
+		if (auto ret = searchExtensionMethod(L, cls, name, true)) {
+            return ret;
+		}
         // get blueprint member
-        UFunction* func = cls->FindFunctionByName(UTF8_TO_TCHAR(name));
-        if(func) return LuaObject::push(L,func,cls);
-        return searchExtensionMethod(L,cls,name,true);
+		UFunction* func = cls->FindFunctionByName(UTF8_TO_TCHAR(name));
+		if(func) return LuaObject::push(L,func,cls);
+		return 0;
     }
 
     int structConstruct(lua_State* L) {
@@ -826,10 +828,7 @@ namespace NS_SLUA {
         auto p = Cast<UObjectProperty>(prop);
         ensure(p);   
         UObject* o = p->GetPropertyValue(parms);
-        if(auto tr=Cast<UWidgetTree>(o))
-            return LuaWidgetTree::push(L,tr);
-        else
-            return LuaObject::push(L,o,ref);
+        return LuaObject::push(L,o,ref);
     }
 
     template<typename T>
