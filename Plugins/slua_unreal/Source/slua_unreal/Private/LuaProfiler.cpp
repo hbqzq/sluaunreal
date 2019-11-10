@@ -22,11 +22,9 @@
 #include "luasocket/buffer.h"
 #include "lua/lua.hpp"
 
-
 #if PLATFORM_WINDOWS
 #undef TEXT 				// avoid compiling warning of TEXT redefinition
 #include "MinWindows.h" 	// avoid compiling errors
-#endif
 #endif
 
 #include "luasocket/tcp.h"

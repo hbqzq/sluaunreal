@@ -13,6 +13,7 @@
 
 #pragma once
 #define LUA_LIB
+#include "LuaMap.h"
 #include "lua/lua.hpp"
 #include <utility>
 #include <cstddef>

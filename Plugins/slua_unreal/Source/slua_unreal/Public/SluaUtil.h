@@ -26,8 +26,6 @@
 #define SafeDelete(ptr) if(ptr) { delete ptr;ptr=nullptr; }
 #endif
 
-#undef G // avoid compiling error when using local variable named 'G'
-
 namespace NS_SLUA {
 
 	template<typename T>
