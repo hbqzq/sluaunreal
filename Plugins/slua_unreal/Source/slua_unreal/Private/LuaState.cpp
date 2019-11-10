@@ -116,9 +116,10 @@ namespace NS_SLUA {
     int LuaState::loader(lua_State* L) {
         LuaState* state = LuaState::get(L);
         const char* fn = lua_tostring(L,1);
+		uint8* buf;
         uint32 len;
         FString filepath;
-        if(uint8* buf = state->loadFile(fn,len,filepath)) {
+        if(state->loadFile(fn,buf,len,filepath)) {
             AutoDeleteArray<uint8> defer(buf);
 
             char chunk[256];
@@ -137,9 +138,9 @@ namespace NS_SLUA {
         return 0;
     }
     
-    uint8* LuaState::loadFile(const char* fn,uint32& len,FString& filepath) {
-        if(loadFileDelegate) return loadFileDelegate(fn,len,filepath);
-        return nullptr;
+    bool LuaState::loadFile(const char* fn,uint8*& buf,uint32& len,FString& filepath) {
+        if(loadFileDelegate) return loadFileDelegate(fn,buf,len,filepath);
+        return false;
     }
 
     LuaState* LuaState::mainState = nullptr;
@@ -462,9 +463,10 @@ namespace NS_SLUA {
     }
 
     LuaVar LuaState::doFile(const char* fn, LuaVar* pEnv) {
+		uint8* buf;
         uint32 len;
         FString filepath;
-        if(uint8* buf=loadFile(fn,len,filepath)) {
+        if(loadFile(fn,buf,len,filepath)) {
             char chunk[256];
             snprintf(chunk,256,"@%s",TCHAR_TO_UTF8(*filepath));
 
