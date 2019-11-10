@@ -320,6 +320,60 @@ namespace NS_SLUA {
         }
     };
 
+    
+    template<typename T,T,int Offset=1>
+    struct LuaCppFieldBinding;
+
+	template <typename F, F* P, int Offset>
+    struct LuaCppFieldBinding<F*, P, Offset> {
+        static constexpr bool IsStatic = !std::is_member_pointer<decltype(P)>::value;
+
+        static F invoke_getter(lua_State* L, void*) {
+            return *P;
+        }
+
+        static void invoke_setter(lua_State* L, void*, F&& v) {
+            *P = v;
+        }
+
+        static int LuaCFunction_getter(lua_State* L) {
+            using f = FunctionBind<decltype(&invoke_getter), invoke_getter, Offset>;
+            return f::invoke(L, nullptr);
+        }
+
+        static int LuaCFunction_setter(lua_State* L) {
+            using f = FunctionBind<decltype(&invoke_setter), invoke_setter, Offset>;
+            return f::invoke(L, nullptr);
+        }
+    };
+
+	template <typename T, typename F, F T::*P>
+    struct LuaCppFieldBinding<F T::*, P> {
+        static constexpr bool IsStatic = !std::is_member_pointer<decltype(P)>::value;
+
+        static F invoke_getter(lua_State* L, void* ptr) {
+            T* thisptr = (T*)ptr;
+            return thisptr->*P;
+        }
+
+        static void invoke_setter(lua_State* L, void* ptr, F&& v) {
+            T* thisptr = (T*)ptr;
+            thisptr->*P = v;
+        }
+
+        static int LuaCFunction_getter(lua_State* L) {
+            T* p = LuaObject::checkUD<T>(L, 1);
+            using f = FunctionBind<decltype(&invoke_getter), invoke_getter, 2>;
+            return f::invoke(L, p);
+        }
+
+        static int LuaCFunction_setter(lua_State* L) {
+            T* p = LuaObject::checkUD<T>(L, 1);
+            using f = FunctionBind<decltype(&invoke_setter), invoke_setter, 2>;
+            return f::invoke(L, p);
+        }
+    };
+
 	template<typename CallableType, typename ReturnType, typename ... ArgTypes>
 	int CallableExpand<CallableType, ReturnType, ArgTypes...>::LuaCFunction(lua_State* L)
 	{
@@ -397,16 +451,45 @@ namespace NS_SLUA {
 			static_assert(!std::is_base_of<UObject, CLS>::value, "UObject class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
             AutoStack autoStack(L); \
 
+    #define __DefLuaClassTailNoGC(CLS) \
+        static int Lua##CLS##_gc(lua_State* L) { \
+            return 0;\
+        } \
+        static int Lua##CLS##_tostring(lua_State* L) { \
+            void* p = lua_touserdata(L,1); \
+            char buf[128]; \
+            snprintf(buf,128,"%s(@%p)",#CLS,p); \
+            lua_pushstring(L,buf); \
+            return 1; \
+        } \
+        static int Lua##CLS##_setup(lua_State* L); \
+        static LuaClass Lua##CLS##__(Lua##CLS##_setup); \
+        int Lua##CLS##_setup(lua_State* L) { \
+			static_assert(!std::is_base_of<UObject, CLS>::value, "UObject class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
+            AutoStack autoStack(L); \
+
     #define DefLuaClassBase(CLS) \
         __DefTypeName(CLS) \
         __DefLuaClassTail(CLS) \
+
+    #define DefLuaClassBaseNoGC(CLS) \
+        __DefTypeName(CLS) \
+        __DefLuaClassTailNoGC(CLS) \
 
     #define DefLuaClassBaseExtern(MODULE_API,CLS) \
         __DefTypeNameExtern(CLS,MODULE_API) \
         __DefLuaClassTail(CLS) \
 
+    #define DefLuaClassBaseExternNoGC(MODULE_API,CLS) \
+        __DefTypeNameExtern(CLS,MODULE_API) \
+        __DefLuaClassTailNoGC(CLS) \
+
     #define DefLuaClass(CLS, ...) \
         DefLuaClassBase(CLS) \
+        LuaObject::newTypeWithBase(L,#CLS,std::initializer_list<const char*>{#__VA_ARGS__}); \
+
+    #define DefLuaClassNoGC(CLS, ...) \
+        DefLuaClassBaseNoGC(CLS) \
         LuaObject::newTypeWithBase(L,#CLS,std::initializer_list<const char*>{#__VA_ARGS__}); \
 
     #define DefLuaClassExtern(MODULE_API,CLS, ...) \
@@ -442,6 +525,11 @@ namespace NS_SLUA {
         lua_CFunction set=LuaCppBinding<decltype(SET),SET>::LuaCFunction; \
         LuaObject::addField(L,#NAME,get,set,INST); \
     }
+
+    #define DefLuaField(NAME,FIELD,READONLY) { \
+		using BindingType = LuaCppFieldBinding<decltype(FIELD),FIELD>; \
+		LuaObject::addField(L,#NAME,BindingType::LuaCFunction_getter,READONLY?LuaCppBinding<decltype(nullptr),nullptr>::LuaCFunction:BindingType::LuaCFunction_setter,!BindingType::IsStatic); \
+	}
     
     #define DefLuaMethod_With_CFunction(NAME, Static, FUNC) \
 		LuaObject::addMethod(L, #NAME, FUNC, !Static);
@@ -512,5 +600,9 @@ namespace NS_SLUA {
 		using SetType = LuaCppBinding<decltype(SETTER),SETTER>; \
         LuaObject::addExtensionProperty(U::StaticClass(),N,GetType::LuaCFunction,SetType::LuaCFunction,GetType::IsStatic); }
 
+	#define REG_EXTENSION_FIELD(U,N,FIELD,READONLY,INST) { \
+		using BindingType = LuaCppFieldBinding<decltype(FIELD),FIELD>; \
+		LuaObject::addExtensionProperty(U::StaticClass(),N,BindingType::LuaCFunction_getter,READONLY?LuaCppBinding<decltype(nullptr),nullptr>::LuaCFunction:BindingType::LuaCFunction_setter,!INST); \
+	}
 }
 

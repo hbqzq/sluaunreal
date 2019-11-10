@@ -76,6 +76,7 @@ namespace NS_SLUA {
     DefDeduceType(double, Double);
     DefDeduceType(bool, Bool);
     DefDeduceType(UObject*, Object);
+    DefDeduceType(UActorComponent*, Object);
     DefDeduceType(FString, Str);
 
     // definition of property

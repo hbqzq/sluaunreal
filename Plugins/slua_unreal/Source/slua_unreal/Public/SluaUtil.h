@@ -26,6 +26,8 @@
 #define SafeDelete(ptr) if(ptr) { delete ptr;ptr=nullptr; }
 #endif
 
+#undef G // avoid compiling error when using local variable named 'G'
+
 namespace NS_SLUA {
 
 	template<typename T>
@@ -218,7 +220,6 @@ namespace NS_SLUA {
 	DefTypeName(lua_State);
 	// add your custom Type-Maped here
 	DefTypeName(FHitResult);
-	DefTypeName(FActorSpawnParameters);
 	DefTypeName(FSlateFontInfo);
 	DefTypeName(FSlateBrush);
 	DefTypeName(FMargin);

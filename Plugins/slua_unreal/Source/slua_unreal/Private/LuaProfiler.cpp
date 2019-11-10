@@ -17,8 +17,8 @@
 #include "ArrayWriter.h"
 
 #if PLATFORM_WINDOWS
-#include "MinWindows.h" 	// avoid compiling errors
 #undef TEXT 				// avoid compiling warning of TEXT redefinition
+#include "MinWindows.h" 	// avoid compiling errors
 #endif
 #include "luasocket/tcp.h"
 #include "luasocket/auxiliar.h"
