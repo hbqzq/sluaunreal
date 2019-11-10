@@ -687,7 +687,9 @@ namespace NS_SLUA {
 
 		DefPushStruct(FVector2D)
 		DefPushStruct(FVector)
+		DefPushStruct(FRotator)
 		DefPushStruct(FDateTime)
+		DefPushStruct(FLinearColor)
 
         // check tn is base of base
         static bool isBaseTypeOf(lua_State* L,const char* tn,const char* base);
@@ -959,5 +961,7 @@ namespace NS_SLUA {
 
 	DefCheckStruct(FVector2D)
 	DefCheckStruct(FVector)
+	DefCheckStruct(FRotator)
 	DefCheckStruct(FDateTime)
+	DefCheckStruct(FLinearColor)
 }
