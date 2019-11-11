@@ -1051,10 +1051,7 @@ namespace NS_SLUA {
         auto p = Cast<UObjectProperty>(prop);
         ensure(p);   
         UObject* o = p->GetPropertyValue(parms);
-        if(auto tr=Cast<UWidgetTree>(o))
-            return LuaWidgetTree::push(L,tr);
-        else
-            return LuaObject::push(L,o,false,ref);
+        return LuaObject::push(L,o,false,ref);
     }
 
     template<typename T>
