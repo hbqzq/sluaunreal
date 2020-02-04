@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and limitations under the License.
 #pragma once
 #include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
 #include "lua.hpp"
 #include "PropertyUtil.generated.h"
 

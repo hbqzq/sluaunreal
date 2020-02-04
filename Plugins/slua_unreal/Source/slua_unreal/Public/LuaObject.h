@@ -785,6 +785,9 @@ namespace NS_SLUA {
 		static void addExtensionMethod(UClass* cls, const char* n, lua_CFunction func, bool isStatic = false);
 		static void addExtensionProperty(UClass* cls, const char* n, lua_CFunction getter, lua_CFunction setter, bool isStatic = false);
 
+		static void addExtensionMethod(UScriptStruct* cls, const char* n, lua_CFunction func, bool isStatic = false);
+		static void addExtensionProperty(UScriptStruct* cls, const char* n, lua_CFunction getter, lua_CFunction setter, bool isStatic = false);
+
         static UFunction* findCacheFunction(lua_State* L,UClass* cls,const char* fname);
         static void cacheFunction(lua_State* L, UClass* cls,const char* fame,UFunction* func);
 

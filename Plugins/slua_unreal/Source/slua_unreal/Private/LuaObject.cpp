@@ -34,6 +34,7 @@
 #include "LuaReference.h"
 #include "LuaBase.h"
 #include "Engine/UserDefinedEnum.h"
+#include "lstate.h"
 
 namespace NS_SLUA { 
 	static const FName NAME_LatentInfo = TEXT("LatentInfo");
@@ -63,11 +64,14 @@ namespace NS_SLUA {
     TMap< UClass*, TMap<FString, ExtensionField> > extensionMMap;
     TMap< UClass*, TMap<FString, ExtensionField> > extensionMMap_static;
 
+    TMap< UScriptStruct*, TMap<FString, ExtensionField> > extensionStructMMap;
+    TMap< UScriptStruct*, TMap<FString, ExtensionField> > extensionStructMMap_static;
+
     namespace ExtensionMethod{
         void init();
     }
 
-    DefTypeName(LuaStruct)
+    //DefTypeName(LuaStruct)
 
     // construct lua struct
     LuaStruct::LuaStruct(uint8* b,uint32 s,UScriptStruct* u)
@@ -106,6 +110,29 @@ namespace NS_SLUA {
 		}
 		else {
 			auto& extmap = extensionMMap.FindOrAdd(cls);
+			extmap.Add(n, ExtensionField(getter, setter));
+		}
+	}
+
+	void LuaObject::addExtensionMethod(UScriptStruct* cls,const char* n,lua_CFunction func,bool isStatic) {
+        if(isStatic) {
+            auto& extmap = extensionStructMMap_static.FindOrAdd(cls);
+            extmap.Add(n, ExtensionField(func));
+        }
+        else {
+            auto& extmap = extensionStructMMap.FindOrAdd(cls);
+            extmap.Add(n, ExtensionField(func));
+        }
+    }
+
+	void LuaObject::addExtensionProperty(UScriptStruct* cls, const char * n, lua_CFunction getter, lua_CFunction setter, bool isStatic)
+	{
+		if (isStatic) {
+			auto& extmap = extensionStructMMap_static.FindOrAdd(cls);
+			extmap.Add(n, ExtensionField(getter, setter));
+		}
+		else {
+			auto& extmap = extensionStructMMap.FindOrAdd(cls);
 			extmap.Add(n, ExtensionField(getter, setter));
 		}
 	}
@@ -418,9 +445,44 @@ namespace NS_SLUA {
         return searchExtensionMethod(L,cls,name,isStatic);
     }
 
+	int searchExtensionMethod(lua_State* L, UScriptStruct* cls, const char* name, bool isStatic = false) {
+
+        // search class and its super
+        TMap<FString, ExtensionField>* mapptr = nullptr;
+        while (cls != nullptr) {
+            mapptr = isStatic ? extensionStructMMap_static.Find(cls) : extensionStructMMap.Find(cls);
+            if (mapptr != nullptr) {
+                // find field
+                auto fieldptr = mapptr->Find(name);
+                if (fieldptr != nullptr) {
+                    // is function
+                    if (fieldptr->isFunction) {
+                        lua_pushcfunction(L, fieldptr->func);
+                        return 1;
+                    }
+                    // is property
+                    else {
+                        if (!fieldptr->getter)
+                            luaL_error(L, "Property %s is set only", name);
+                        lua_pushcfunction(L, fieldptr->getter);
+                        if (!isStatic) {
+                            lua_pushvalue(L, 1); // push self
+                            lua_call(L, 1, 1);
+                        } else
+                            lua_call(L, 0, 1);
+                        return 1;
+                    }
+                }
+            }
+            break;
+        }
+        return 0;
+    }
+
     int classIndex(lua_State* L) {
         UClass* cls = LuaObject::checkValue<UClass*>(L, 1);
         const char* name = LuaObject::checkValue<const char*>(L, 2);
+		// search extension methods first 
 		if (auto ret = searchExtensionMethod(L, cls, name, true)) {
             return ret;
 		}
@@ -429,6 +491,15 @@ namespace NS_SLUA {
 		if(func) return LuaObject::push(L,func,cls);
 		return 0;
     }
+
+	int structIndex(lua_State* L) {
+        UScriptStruct* cls = LuaObject::checkValue<UScriptStruct*>(L, 1);
+        const char* name = LuaObject::checkValue<const char*>(L, 2);
+        if (auto ret = searchExtensionMethod(L, cls, name, true)) {
+            return ret;
+        }
+        return 0;
+	}
 
     int structConstruct(lua_State* L) {
         UScriptStruct* uss = LuaObject::checkValue<UScriptStruct*>(L, 1);
@@ -630,23 +701,26 @@ namespace NS_SLUA {
             return LuaObject::push(L, func);
         }
 
-        // get blueprint member
-		FName wname(UTF8_TO_TCHAR(name));
-        func = cls->FindFunctionByName(wname);
-        if(!func) {
-			cachePropertys(L, cls);
+        // search extension method
+        if (auto extensionMethodRet = searchExtensionMethod(L, obj, name)) {
+            return extensionMethodRet;
+        } else {
+            FName wname(UTF8_TO_TCHAR(name));
+			// get blueprint member
+            func = cls->FindFunctionByName(wname);
+            if (!func) {
+                cachePropertys(L, cls);
 
-			up = LuaObject::findCacheProperty(L, cls, name);
-            if (up) {
-                return LuaObject::push(L, up, obj, false);
+                up = LuaObject::findCacheProperty(L, cls, name);
+                if (up) {
+                    return LuaObject::push(L, up, obj, false);
+                }
+
+                return 0;
+            } else {
+                LuaObject::cacheFunction(L, cls, name, func);
+                return LuaObject::push(L, func);
             }
-            
-            // search extension method
-            return searchExtensionMethod(L, obj, name);
-        }
-        else {   
-			LuaObject::cacheFunction(L, cls, name, func);
-            return LuaObject::push(L,func);
         }
     }
 
@@ -706,7 +780,9 @@ namespace NS_SLUA {
     int instanceStructIndex(lua_State* L) {
         LuaStruct* ls = LuaObject::checkValue<LuaStruct*>(L, 1);
         const char* name = LuaObject::checkValue<const char*>(L, 2);
-        
+		if (auto ret = searchExtensionMethod(L, ls->uss, name, false)) {
+            return ret;
+        }
         auto* cls = ls->uss;
         UProperty* up = FindStructPropertyByName(cls, name);
         if(!up) return 0;
@@ -1408,6 +1484,8 @@ namespace NS_SLUA {
     int LuaObject::setupStructMT(lua_State* L) {
         lua_pushcfunction(L,structConstruct);
 		lua_setfield(L, -2, "__call");
+        lua_pushcfunction(L,NS_SLUA::structIndex);
+		lua_setfield(L, -2, "__index");
 		lua_pushcfunction(L, objectToString);
 		lua_setfield(L, -2, "__tostring");
         return 0;

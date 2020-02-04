@@ -25,6 +25,8 @@
 #if PLATFORM_WINDOWS
 #undef TEXT 				// avoid compiling warning of TEXT redefinition
 #include "MinWindows.h" 	// avoid compiling errors
+#undef InterlockedAdd       // avoid compiling warnings of macro redefinition
+#include "AllowWindowsPlatformAtomics.h"
 #endif
 
 #include "luasocket/tcp.h"
@@ -35,7 +37,6 @@
 #include <sys/ioctl.h>
 #define TEXT(x) TEXT_PASTE(x)
 #endif
-
 
 #ifdef ENABLE_PROFILER
 namespace NS_SLUA {
@@ -323,4 +324,8 @@ namespace NS_SLUA {
 	}
 
 }
+#endif
+
+#if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
 #endif
