@@ -449,7 +449,7 @@ namespace NS_SLUA {
         static int Lua##CLS##_setup(lua_State* L); \
         static LuaClass Lua##CLS##__(Lua##CLS##_setup); \
         int Lua##CLS##_setup(lua_State* L) { \
-			static_assert(!std::is_base_of<UObject, CLS>::value, "UObject class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
+			static_assert(!std::is_base_of<UObject, CLS>::value || TIsUStruct<CLS>::Value, "UObject or UStruct class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
             AutoStack autoStack(L); \
 
     #define __DefLuaClassTailNoGC(CLS) \
@@ -466,7 +466,7 @@ namespace NS_SLUA {
         static int Lua##CLS##_setup(lua_State* L); \
         static LuaClass Lua##CLS##__(Lua##CLS##_setup); \
         int Lua##CLS##_setup(lua_State* L) { \
-			static_assert(!std::is_base_of<UObject, CLS>::value, "UObject class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
+			static_assert(!std::is_base_of<UObject, CLS>::value || TIsUStruct<CLS>::Value, "UObject or UStruct class shouldn't use LuaCppBinding. Use REG_EXTENSION instead."); \
             AutoStack autoStack(L); \
 
     #define DefLuaClassBase(CLS) \
@@ -502,6 +502,11 @@ namespace NS_SLUA {
         LuaObject::finishType(L, #CLS, x, Lua##CLS##_gc, Lua##CLS##_tostring); \
         return 0; } \
 
+    #define EndDef_With_CFunction(CLS,M)  \
+        lua_CFunction x=M; \
+        LuaObject::finishType(L, #CLS, x, Lua##CLS##_gc, Lua##CLS##_tostring); \
+        return 0; } \
+
     #define DefLuaMethod(NAME,M) { \
         lua_CFunction x=LuaCppBinding<decltype(M),M>::LuaCFunction; \
         constexpr bool inst=std::is_member_function_pointer<decltype(M)>::value; \
@@ -524,6 +529,12 @@ namespace NS_SLUA {
 	#define DefLuaProperty(NAME,GET,SET,INST) { \
         lua_CFunction get=LuaCppBinding<decltype(GET),GET>::LuaCFunction; \
         lua_CFunction set=LuaCppBinding<decltype(SET),SET>::LuaCFunction; \
+        LuaObject::addField(L,#NAME,get,set,INST); \
+    }
+
+	#define DefLuaProperty_With_CFunction(NAME,GET,SET,INST) { \
+        lua_CFunction get=GET; \
+        lua_CFunction set=SET; \
         LuaObject::addField(L,#NAME,get,set,INST); \
     }
 

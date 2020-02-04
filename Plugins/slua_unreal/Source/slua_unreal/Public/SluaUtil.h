@@ -127,6 +127,15 @@ namespace NS_SLUA {
 		return true;
 	}
 
+	template <typename T>
+	class TIsUStruct {
+		template <typename U> static uint16 Func(decltype(&U::StaticStruct));
+		template <typename U> static uint8  Func(...);
+	
+	public:
+		enum { Value = sizeof(Func<T>(0)) - 1 };
+	};
+
 	// why not use std::string?
 	// std::string in unreal4 will caused crash
 	// why not use FString
@@ -155,15 +164,26 @@ namespace NS_SLUA {
 		}
 	};
 
-	template<typename T, bool isUObject = std::is_base_of<UObject, T>::value>
+	template<typename T, bool isUObject = (std::is_base_of<UObject, T>::value || TIsUStruct<T>::Value)>
 	struct TypeName {
 		static SimpleString value();
 	};
 
 	template<typename T>
 	struct TypeName<T, true> {
-		static SimpleString value() {
+		template <typename U>
+		static typename std::enable_if<TIsUStruct<U>::Value, SimpleString>::type get() {
+            static SimpleString NAME(SimpleString(TCHAR_TO_UTF8(*(FString("F") + U::StaticStruct()->GetName()))));
+			return NAME;
+		}
+
+		template <typename U>
+		static typename std::enable_if<!TIsUStruct<U>::Value, SimpleString>::type get() {
 			return "UObject";
+		}
+
+		static SimpleString value() {
+			return get<T>();
 		}
 	};
 
@@ -242,6 +262,9 @@ namespace NS_SLUA {
 	DefTypeName(FPrimaryAssetId);
 	DefTypeName(FActorComponentTickFunction);
 	DefTypeName(FDateTime);
+
+	struct LuaStruct;
+	DefTypeName(LuaStruct);
 	
 	template<typename T,ESPMode mode>
 	struct TypeName<TSharedPtr<T, mode>, false> {

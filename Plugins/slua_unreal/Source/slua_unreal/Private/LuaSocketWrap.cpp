@@ -14,6 +14,11 @@
 #include "LuaSocketWrap.h"
 #include "LuaObject.h"
 #include "LuaState.h"
+
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformAtomics.h"
+#endif
+
 #include "luasocket/luasocket.h"
 #include "luasocket/mime.h"
 
@@ -134,3 +139,7 @@ namespace NS_SLUA {
         }
     }
 }
+
+#if PLATFORM_WINDOWS
+#include "HideWindowsPlatformAtomics.h"
+#endif
