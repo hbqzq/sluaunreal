@@ -14,7 +14,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "lua/lua.hpp"
-#include "lua/lstate.h"
+//#include "lua/lstate.h"
 #include <functional>
 #include <cstddef>
 #include <cstring>

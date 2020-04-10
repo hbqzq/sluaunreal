@@ -22,6 +22,8 @@
 #include "LuaState.h"
 #include "Internationalization/Internationalization.h"
 
+#include "Engine/Engine.h"
+
 namespace {
     const FName GetVarOutOfBoundsWarning = FName("GetVarOutOfBoundsWarning");    
     const FName GetVarTypeErrorWarning = FName("GetVarTypeErrorWarning");    
@@ -50,9 +52,16 @@ ULuaBlueprintLibrary::ULuaBlueprintLibrary(const FObjectInitializer& ObjectIniti
 FLuaBPVar ULuaBlueprintLibrary::CallToLuaWithArgs(UObject* WorldContextObject, FString funcname,const TArray<FLuaBPVar>& args,FString StateName) {
     using namespace NS_SLUA;
     // get main state
+	/*
 	auto actor = Cast<AActor>(WorldContextObject);
 	ensure(actor);
-    auto ls = LuaState::get(actor->GetGameInstance());
+	auto ls = LuaState::get(actor->GetGameInstance());
+	*/
+	auto world = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if(world == nullptr)
+		return FLuaBPVar();
+
+	auto ls = LuaState::get(world->GetGameInstance());
     if(StateName.Len()!=0) ls = LuaState::get(StateName);
     if(!ls) return FLuaBPVar();
     LuaVar f = ls->get(TCHAR_TO_UTF8(*funcname));
@@ -70,9 +79,16 @@ FLuaBPVar ULuaBlueprintLibrary::CallToLuaWithArgs(UObject* WorldContextObject, F
 FLuaBPVar ULuaBlueprintLibrary::CallToLua(UObject* WorldContextObject, FString funcname,FString StateName) {
     using namespace NS_SLUA;
     // get main state
+	/*
 	auto actor = Cast<AActor>(WorldContextObject);
 	ensure(actor);
 	auto ls = LuaState::get(actor->GetGameInstance());
+	*/
+	auto world = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if(world == nullptr)
+		return FLuaBPVar();
+
+	auto ls = LuaState::get(world->GetGameInstance());
     if(StateName.Len()!=0) ls = LuaState::get(StateName);
     if(!ls) return FLuaBPVar();
     LuaVar f = ls->get(TCHAR_TO_UTF8(*funcname));
@@ -110,9 +126,16 @@ FLuaBPVar ULuaBlueprintLibrary::CreateVarFromBool(bool b) {
 
 FLuaBPVar ULuaBlueprintLibrary::CreateVarFromObject(UObject* WorldContextObject, UObject* o) {
     using namespace NS_SLUA;
+	/*
 	auto actor = Cast<AActor>(WorldContextObject);
 	ensure(actor);
 	auto ls = LuaState::get(actor->GetGameInstance());
+	*/
+	auto world = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if(world == nullptr)
+		return FLuaBPVar();
+
+	auto ls = LuaState::get(world->GetGameInstance());
     if(!ls) return FLuaBPVar();
     LuaObject::push(ls->getLuaState(),o);
     LuaVar ret(ls->getLuaState(),-1);
@@ -120,7 +143,7 @@ FLuaBPVar ULuaBlueprintLibrary::CreateVarFromObject(UObject* WorldContextObject,
     return FLuaBPVar(ret);
 }
 
-int FLuaBPVar::checkValue(NS_SLUA::lua_State* L, UStructProperty* p, uint8* params, int i)
+int FLuaBPVar::checkValue(lua_State* L, UStructProperty* p, uint8* params, int i)
 {
 	FLuaBPVar ret;
 	ret.value.set(L, i);
